@@ -66,7 +66,7 @@ class GradientDescent(Solver):
     def step(self) -> SolverReport:
         loss, grads = self.loss.gradient(self.params)
         self.params -= self.lr * grads
-        return SolverReport(loss=loss.item())
+        return SolverReport(loss=loss.item(), dt=self.lr)
 
 
 @dataclass
