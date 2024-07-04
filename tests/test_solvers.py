@@ -39,7 +39,7 @@ class SolverTest(unittest.TestCase):
             dataset=ds, criterion=criterion, net=net_2
         )
         solver = euler.GradientDescent(loss=loss_func, params=params, lr=0.1)
-        loss_2 = solver.step()
+        loss_2 = torch.tensor([solver.step().loss], device=DEVICE)
         param_dict = loss_func._to_dict(params)
 
         self.assertTrue(torch.isclose(loss_1, loss_2).all())
