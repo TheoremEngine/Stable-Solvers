@@ -17,7 +17,12 @@ loss_func = euler.LossFunction(
     batch_size=32
 )
 params = loss_func.initialize_parameters()
-solver = euler.ExponentialEulerSolver(params=params, loss=loss_func)
+solver = euler.ExponentialEulerSolver(
+    params=params,
+    loss=loss_func,
+    max_step_size=0.01,
+    stiff_dim=...  # Should be equal to the dimension of the network outputs
+)
 loss = float('inf')
 
 while loss > 0.1:
