@@ -14,7 +14,7 @@ __all__ = [
 
 
 def power_iteration_method(op: Operator, n: int = 1, max_iters: int = 100,
-                           tol: float = 0.01,
+                           tol: float = 1e-3,
                            init_eigvecs: Optional[torch.Tensor] = None) \
         -> Tuple[torch.Tensor, torch.Tensor]:
     '''
@@ -60,9 +60,10 @@ def power_iteration_method(op: Operator, n: int = 1, max_iters: int = 100,
 
     for _ in range(max_iters):
         vectors, r = la.qr(vectors, mode='reduced')
-        new_eigvals = torch.diagonal(r)
 
-        if (eigvals - new_eigvals).norm(p=1) < tol:
+        new_eigvals = torch.diagonal(r)
+        deltas = (eigvals - new_eigvals).abs()
+        if ((deltas / (eigvals.abs() + 1e-6)) < tol).all():
             break
 
         eigvals = new_eigvals

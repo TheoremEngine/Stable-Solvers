@@ -18,11 +18,11 @@ NUM_CLASSES = 4
 # Tested on a LambdaLabs A100-SXM4 node
 #
 # ------  ---------
-# g_eig   0.77518 sec
-# grad    0.03921 sec
-# h_eig   5.18961 sec
-# hess    0.77228 sec
-# solver  1.04248 sec
+# g_eig   0.51178 sec
+# grad    0.03340 sec
+# h_eig   2.88250 sec
+# hess    0.47660 sec
+# solver  0.28432 sec
 # ------  ---------
 
 
