@@ -5,21 +5,18 @@ import torch
 __all__ = ['mhp']
 
 
-def mhp(func: Callable, inputs: Tuple[torch.Tensor, ...],
-        m: Tuple[torch.Tensor, ...]) -> Tuple[torch.Tensor, ...]:
+def mhp(func: Callable, inputs: torch.Tensor, m: torch.Tensor) -> torch.Tensor:
     '''
     Modifies the :func:`torch.autograd.functional.vhp` to perform a matrix-
     Hessian product instead of vector-Hessian product.
     '''
-    dim, = {x.shape[-1] for x in m}
-
-    if dim == 1:
+    if m.shape[-1] == 1:
         # If dim == 1, then there's no need to involve the extra vmap apparatus
         # because we can treat it as a vector.
         _, out = torch.autograd.functional.vhp(
-            func, inputs, tuple(x.squeeze(-1) for x in m)
+            lambda x: func(x.unsqueeze(-1)).squeeze(-1), inputs, m.squeeze(-1)
         )
-        return tuple(x.unsqueeze(-1) for x in out)
+        return out.unsqueeze(-1)
 
     else:
         # Ordinarily, _grad_preprocess would be called inside
@@ -27,10 +24,10 @@ def mhp(func: Callable, inputs: Tuple[torch.Tensor, ...],
         # retain_grad_ on each tensor, which torch.vmap does not like. We
         # therefore move that call outside.
         inputs = torch.autograd.functional._grad_preprocess(
-            inputs, create_graph=False, need_graph=True
+            (inputs,), create_graph=False, need_graph=True
         )
         m = torch.autograd.functional._grad_preprocess(
-            m, create_graph=False, need_graph=False
+            (m,), create_graph=False, need_graph=False
         )
 
         # We create this function so as to have a function of the appropriate
@@ -38,7 +35,7 @@ def mhp(func: Callable, inputs: Tuple[torch.Tensor, ...],
         def _vhp(v: Tuple[torch.Tensor, ...]) -> Tuple[torch.Tensor, ...]:
             return vhp(func, inputs, v)
 
-        return torch.vmap(_vhp, -1, -1)(m)
+        return torch.vmap(_vhp, -1, -1)(m)[0]
 
 
 def vhp(func, inputs, v):

@@ -67,6 +67,8 @@ class LossFunction(torch.nn.Module):
                 f'Criterion should not reduce the loss. Got loss of shape '
                 f'{loss.shape}, when expecting shape {labels.shape}.'
             )
+        if loss.ndim > 1:
+            loss = loss.flatten(1).sum(1)
         return loss
 
     def dataloader(self, device):

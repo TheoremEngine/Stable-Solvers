@@ -18,9 +18,11 @@ NUM_CLASSES = 4
 # Tested on a LambdaLabs A100-SXM4 node
 #
 # ------  ---------
-# grad    0.03921
-# hess    0.77228
-# solver  1.04248
+# g_eig   0.77518 sec
+# grad    0.03921 sec
+# h_eig   5.18961 sec
+# hess    0.77228 sec
+# solver  1.04248 sec
 # ------  ---------
 
 
@@ -65,8 +67,16 @@ def make_solver():
     return (solver,)
 
 
+def run_g_eig(loss_func, params):
+    euler.g_eigenvector(loss_func, params, max_iters=1000)
+
+
 def run_grad(loss_func, params):
     loss_func.gradient(params)
+
+
+def run_h_eig(loss_func, params):
+    euler.h_eigenvector(loss_func, params, max_iters=1000)
 
 
 def run_hess(loss_func, params):
@@ -78,7 +88,9 @@ def run_solver(solver):
 
 
 CASES = {
+    'g_eig': (run_g_eig, make_loss_func),
     'grad': (run_grad, make_loss_func),
+    'h_eig': (run_h_eig, make_loss_func),
     'hess': (run_hess, make_loss_func),
     'solver': (run_solver, make_solver),
 }
