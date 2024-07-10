@@ -104,15 +104,15 @@ class ExponentialEulerSolver(Solver):
         )
         # Break the gradient into the components lying on the stiff
         # eigenvectors and the bulk remainder.
-        stiff_projections = grads @ self.eigvecs
-        bulk = grads - self.eigvecs @ stiff_projections
+        stiff_projections = grads @ self.eigvecs[:, :-1]
+        bulk = grads - self.eigvecs[:, :-1] @ stiff_projections
         # Calculate bulk component of the step
-        step_size = min(self.max_step_size, 1. / eigvals.abs().min().item())
+        step_size = min(self.max_step_size, 1. / eigvals[-1].abs().item())
         step = bulk * -step_size
         # Calculate stiff component of the step
-        stiff_step = (1 - (-eigvals * step_size).exp()) / eigvals
-        stiff_step = stiff_step.clamp_(min=step_size)
-        step -= self.eigvecs @ (stiff_step * stiff_projections)
+        stiff_step = (1 - (-eigvals[:-1] * step_size).exp()) / eigvals[:-1]
+        stiff_step = stiff_step.clamp_(max=step_size)
+        step -= self.eigvecs[:, :-1] @ (stiff_step * stiff_projections)
         self.params += step
 
         return ExponentialEulerSolverReport(
