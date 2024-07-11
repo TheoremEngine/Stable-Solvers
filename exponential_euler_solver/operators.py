@@ -3,6 +3,7 @@ import torch
 from .autograd import mhp
 from .distributed import broadcast_across_processes_, sum_across_processes_
 from .loss_functions import LossFunction
+from .utils import _params_tensor_to_dict
 
 __all__ = ['GMatrix', 'HMatrix', 'LossHessian', 'Operator']
 
@@ -84,7 +85,7 @@ class LossHessian(Operator):
             def compute_loss(params: torch.Tensor) -> torch.Tensor:
                 z = torch.func.functional_call(
                     self.loss_func._net,
-                    self.loss_func._to_dict(params),
+                    _params_tensor_to_dict(params, self.loss_func._net),
                     *inputs
                 )
                 return self.loss_func.criterion(z, labels).sum()
@@ -141,7 +142,7 @@ class GMatrix(Operator):
             def func(params: torch.Tensor) -> torch.Tensor:
                 z = torch.func.functional_call(
                     self.loss_func._net,
-                    self.loss_func._to_dict(params),
+                    _params_tensor_to_dict(params, self.loss_func._net),
                     *inputs
                 )
                 dz_dl = criterion_grad(z, labels)
@@ -200,7 +201,7 @@ class HMatrix(Operator):
             def func(params: torch.Tensor) -> torch.Tensor:
                 z = torch.func.functional_call(
                     self.loss_func._net,
-                    self.loss_func._to_dict(params),
+                    _params_tensor_to_dict(params, self.loss_func._net),
                     *inputs
                 )
                 dz_dl = criterion_grad(z, labels)

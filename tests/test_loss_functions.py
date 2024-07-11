@@ -3,6 +3,7 @@ import unittest
 import torch
 
 import exponential_euler_solver as euler
+from exponential_euler_solver.utils import _params_tensor_to_dict
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -67,7 +68,7 @@ class LossFunctionTest(unittest.TestCase):
             dataset=ds, criterion=criterion, net=net
         )
         loss_2, grads_2 = loss_func.gradient(params)
-        grads_2 = loss_func._to_dict(grads_2)
+        grads_2 = _params_tensor_to_dict(grads_2, loss_func._net)
 
         self.assertTrue(torch.isclose(loss_1, loss_2).all())
         for g, (n, _) in zip(grads_1, net.named_parameters()):
@@ -86,8 +87,8 @@ class LossFunctionTest(unittest.TestCase):
         loss_func = euler.LossFunction(
             dataset=ds, criterion=criterion, net=net
         )
-        params = loss_func.initialize_parameters(device='cuda')
-        param_dict = loss_func._to_dict(params)
+        params = loss_func.initialize_parameters(device=DEVICE)
+        param_dict = _params_tensor_to_dict(params, loss_func._net)
         self.assertEqual(
             param_dict.keys(), {'0.weight', '0.bias', '2.weight', '2.bias'}
         )

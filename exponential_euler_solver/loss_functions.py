@@ -1,11 +1,11 @@
-from math import prod, sqrt
-from typing import Callable, Dict
+from math import sqrt
+from typing import Callable
 import warnings
 
-import numpy as np
 import torch
 
 from .distributed import distributed_dataset_wrapper, sum_across_processes_
+from .utils import _params_tensor_to_dict
 
 __all__ = ['LossFunction']
 
@@ -34,7 +34,7 @@ class LossFunction(torch.nn.Module):
     '''
 
     def __init__(self, dataset: torch.utils.data.Dataset, criterion: Callable,
-                 net: torch.nn.Module,  **dataloader_kwargs):
+                 net: torch.nn.Module, **dataloader_kwargs):
         '''
         Args:
             dataset (:class:`torch.utils.data.Dataset`): The dataset.
@@ -79,7 +79,7 @@ class LossFunction(torch.nn.Module):
 
     def forward(self, params: torch.Tensor) -> torch.Tensor:
         n_data = loss = 0
-        param_dict = self._to_dict(params)
+        param_dict = _params_tensor_to_dict(params, self._net)
 
         for *inputs, labels in self.dataloader(params.device):
             # *-packing causes inputs to be a list, but functional_call
@@ -108,7 +108,7 @@ class LossFunction(torch.nn.Module):
             # divide by the size of the dataset at the end, in case different
             # processes instead up with different numbers of data items.
             def compute_loss(params):
-                param_dict = self._to_dict(params)
+                param_dict = _params_tensor_to_dict(params, self._net)
                 # *-packing causes inputs to be a list, but functional_call
                 # requires it to be a tuple
                 out = torch.func.functional_call(
@@ -138,7 +138,8 @@ class LossFunction(torch.nn.Module):
             -> torch.Tensor:
         num_el = sum(p.numel() for p in self._net.parameters())
         out = torch.empty((num_el,), device=device, dtype=dtype)
-        for n, p in self._to_dict(out).items():
+        param_dict = _params_tensor_to_dict(out, self._net)
+        for n, p in param_dict.items():
             if n.endswith('weight'):
                 torch.nn.init.xavier_normal_(p, gain=gain)
             else:
@@ -149,15 +150,3 @@ class LossFunction(torch.nn.Module):
                     )
                 torch.nn.init.zeros_(p)
         return out
-
-    def _to_dict(self, params: torch.Tensor) -> Dict[str, torch.Tensor]:
-        '''
-        This is a convenience method that takes as input a 1-dimensional
-        :class:`torch.Tensor` and converts it into a dictionary of views on the
-        input tensor suitable for being used as a dictionary of parameters.
-        '''
-        names, meta_params = zip(*self._net.named_parameters())
-        shapes = [p.shape for p in meta_params]
-        idxs = np.cumsum([prod(s) for s in shapes]).tolist()[:-1]
-        param_list = params.tensor_split(idxs, 0)
-        return {n: p.view(*s) for n, p, s in zip(names, param_list, shapes)}
