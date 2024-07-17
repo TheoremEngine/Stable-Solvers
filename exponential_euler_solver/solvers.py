@@ -5,6 +5,7 @@ from .eigen import loss_hessian_eigenvector
 from .loss_functions import LossFunction
 
 __all__ = [
+    'AdaptiveGradientDescent', 'AdaptiveGradientDescentReport',
     'ExponentialEulerSolver', 'ExponentialEulerSolverReport',
     'GradientDescent', 'Solver', 'SolverReport'
 ]
@@ -67,6 +68,45 @@ class GradientDescent(Solver):
         loss, grads = self.loss.gradient(self.params)
         self.params -= self.lr * grads
         return SolverReport(loss=loss.item(), dt=self.lr)
+
+
+@dataclass
+class AdaptiveGradientDescentReport(SolverReport):
+    sharpness: float
+
+
+class AdaptiveGradientDescent(Solver):
+    '''
+    Performs gradient descent without momentum, adapting the learning rate at
+    every step to prevent entering the edge of stability.
+    '''
+    def __init__(self, params: torch.Tensor, loss: LossFunction,
+                 lr: float):
+        '''
+        Args:
+            params (:class:`torch.Tensor`): The parameters of the network that
+                are being optimized.
+            loss (:class:`LossFunction`): The loss function.
+            lr (float): Learning rate.
+        '''
+        super().__init__(params=params, loss=loss)
+        self.lr = lr
+        self.eigvec = None
+
+    def step(self) -> AdaptiveGradientDescentReport:
+        # Calculate the gradient
+        loss, grads = self.loss.gradient(self.params)
+        # Calculate the step size
+        sharpness, self.eigvec = loss_hessian_eigenvector(
+            self.loss, self.params, 1,
+            init_eigvecs=self.eigvec, max_iters=1000,
+        )
+        step_size = min(self.lr, 1. / sharpness.item())
+        # Perform update
+        self.params -= step_size * grads
+        return AdaptiveGradientDescentReport(
+            loss=loss.item(), dt=step_size, sharpness=sharpness.item(),
+        )
 
 
 @dataclass
