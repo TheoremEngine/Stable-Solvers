@@ -133,7 +133,7 @@ class LossFunction(torch.nn.Module):
         return loss, grads
 
     def initialize_parameters(self, gain: float = sqrt(2.),
-                              device: torch.device = torch.device('cpu'),
+                              device: torch.device = torch.device('cuda'),
                               dtype: torch.dtype = torch.float32) \
             -> torch.Tensor:
         num_el = sum(p.numel() for p in self._net.parameters())
