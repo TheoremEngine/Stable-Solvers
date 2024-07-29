@@ -3,7 +3,7 @@ This library provides solvers for training neural networks without entering the 
 Training neural networks without entering the edge of stability requires departing somewhat from the conventional syntax in PyTorch, because the solver needs to have direct access to the loss function so it can calculate eigenvectors and eigenvalues. The recommended syntax in this repo is:
 
 ```
-import exponential_euler_solver as euler
+import stable_solvers as solvers
 
 net = ...
 dataset = ...
