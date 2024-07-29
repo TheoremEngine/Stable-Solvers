@@ -48,14 +48,15 @@ class LossHessian(Operator):
         \\frac{\\partial^2 l(f(x, \\theta), y)}
         {\\partial \\theta_i \\partial \\theta_j})(x, y) \\right)
 
-    Where $\\mathcal{T}$ is the training set, $l$ is the criterion, and
-    $f(x, \\theta)$ is the output of the neural network with inputs $x$
-    and parameters $\\theta$.
+    Where :math:`\\mathcal{T}` is the training set, :math:`l` is the criterion,
+    and :math:`f(x, \\theta)` is the output of the neural network with inputs
+    :math:`x` and parameters :math:`\\theta`.
     '''
     def __init__(self, loss_func: LossFunction, params: torch.Tensor):
         '''
         Args:
             loss_func (:class:`LossFunction`): The loss function.
+
             params (:class:`torch.Tensor`): The network parameters.
         '''
         super().__init__()
@@ -106,6 +107,7 @@ class GMatrix(Operator):
         '''
         Args:
             loss_func (:class:`LossFunction`): The loss function.
+
             params (:class:`torch.Tensor`): The network parameters.
         '''
         super().__init__()
@@ -167,6 +169,7 @@ class HMatrix(Operator):
         '''
         Args:
             loss_func (:class:`LossFunction`): The loss function.
+
             params (:class:`torch.Tensor`): The network parameters.
         '''
         super().__init__()

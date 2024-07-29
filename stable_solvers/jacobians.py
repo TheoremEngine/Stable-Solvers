@@ -13,7 +13,7 @@ def make_layerwise_jacobian_function(net: torch.nn.Sequential,
     Returns a function that takes a set of inputs and returns the layerwise
     Jacobian matrices:
 
-    ..code::
+    .. code-block::
         jac_func = make_layerwise_jacobian_function(net, params)
         jac_0, jac_1, ... = jac_func(xs)
 
@@ -22,7 +22,8 @@ def make_layerwise_jacobian_function(net: torch.nn.Sequential,
 
     Args:
         net (:class:`torch.nn.Sequential`): The network to use.
-        params (:class:
+
+        params (:class:`torch.Tensor`): The network parameters.
     '''
     _assert_mlp(net)
     param_dict = _params_tensor_to_dict(params, net)

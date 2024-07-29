@@ -31,17 +31,21 @@ def power_iteration_method(op: Operator, n: int = 1, max_iters: int = 100,
 
     Args:
         op (:class:`Operator`): The operator.
+
         n (int): The number of eigenvalue-eigenvector pairs to calculate.
+
         max_iters (int): The maximum number of iterations to perform. If the
-            procedure has not converged after this many iterations, a
-            RuntimeError is raised.
+        procedure has not converged after this many iterations, a RuntimeError
+        is raised.
+
         tol (float): The procedure declares convergence once the difference
-            between iterations falls below this tolerance in the 1-norm.
+        between iterations falls below this tolerance in the 1-norm.
+
         init_eigvecs (optional, :class:`torch.Tensor`): The initialization
-            value. If not provided, this is randomly initialized. A sensible
-            choice of initialization - for example, reusing the last
-            eigenvector when repeatedly calculating the eigenvector during
-            training - can radically reduce the number of iterations required.
+        value. If not provided, this is randomly initialized. A sensible
+        choice of initialization - for example, reusing the last eigenvector
+        when repeatedly calculating the eigenvector during training - can
+        radically reduce the number of iterations required.
     '''
     # Construct the initial set of eigenvectors
     if init_eigvecs is None:
@@ -84,8 +88,9 @@ def g_eigenvector(loss: LossFunction, params: torch.Tensor,
                   init_eigvecs: Optional[torch.Tensor] = None) \
         -> Tuple[torch.Tensor, torch.Tensor]:
     '''
-    Calculates the top eigenvalue and eigenvector of the $G$ matrix of the loss
-    function using the power iteration method. The $G$ matrix is defined by:
+    Calculates the top eigenvalue and eigenvector of the :math:`G` matrix of
+    the loss function using the power iteration method. The :math:`G` matrix is
+    defined by:
 
     .. math::
         G_{i,j} = \\mathbb{E}_{x,y\\sim\\mathcal{T} \\left(\\sum_{q,r}
@@ -93,24 +98,29 @@ def g_eigenvector(loss: LossFunction, params: torch.Tensor,
         \\frac{\\partial f_q}{\\partial \\theta_i}
         \\frac{\\partial f_r}{\\partial \\theta_j} \\right)
 
-    Where $\\mathcal{T}$ is the training set, $l$ is the criterion, and
-    $f(x, \\theta)$ is the output of the neural network with inputs $x$
-    and parameters $\\theta$.
+    Where :math:`\\mathcal{T}` is the training set, :math:`l` is the criterion,
+    and :math:`f(x, \\theta)` is the output of the neural network with inputs
+    :math:`x` and parameters :math:`\\theta`.
 
     Args:
         loss (:class:`LossFunction`): The loss function.
+
         params (:class:`torch.Tensor`): The network parameters.
+
         n (int): The number of eigenvalue-eigenvector pairs to calculate.
+
         max_iters (int): The maximum number of iterations to perform. If the
-            procedure has not converged after this many iterations, a
-            RuntimeError is raised.
+        procedure has not converged after this many iterations, a RuntimeError
+        is raised.
+
         tol (float): The procedure declares convergence once the difference
-            between iterations falls below this tolerance in the 1-norm.
+        between iterations falls below this tolerance in the 1-norm.
+
         init_eigvecs (optional, :class:`torch.Tensor`): The initialization
-            value. If not provided, this is randomly initialized. A sensible
-            choice of initialization - for example, reusing the last
-            eigenvector when repeatedly calculating the eigenvector during
-            training - can radically reduce the number of iterations required.
+        value. If not provided, this is randomly initialized. A sensible
+        choice of initialization - for example, reusing the last eigenvector
+        when repeatedly calculating the eigenvector during training - can
+        radically reduce the number of iterations required.
     '''
     op = GMatrix(loss, params)
     return power_iteration_method(
@@ -123,32 +133,38 @@ def h_eigenvector(loss: LossFunction, params: torch.Tensor,
                   init_eigvecs: Optional[torch.Tensor] = None) \
         -> Tuple[torch.Tensor, torch.Tensor]:
     '''
-    Calculates the top eigenvalue and eigenvector of the $H$ matrix of the loss
-    function using the power iteration method. The $H$ matrix is defined by:
+    Calculates the top eigenvalue and eigenvector of the :math:`H` matrix of
+    the loss function using the power iteration method. The :math:`H` matrix is
+    defined by:
 
     .. math::
         H_{i,j} = \\mathbb{E}_{x,y\\sim\\mathcal{T} \\left(\\sum_q
         \\frac{\\partial l}{\\partial z_q}
         \\frac{\\partial^2 f_q}{\\partial \\theta_i \\theta_j} \\right)
 
-    Where $\\mathcal{T}$ is the training set, $l$ is the criterion, and
-    $f(x, \\theta)$ is the output of the neural network with inputs $x$
-    and parameters $\\theta$.
+    Where :math:`\\mathcal{T}` is the training set, :math:`l` is the criterion,
+    and :math:`f(x, \\theta)` is the output of the neural network with inputs
+    :math:`x` and parameters :math:`\\theta`.
 
     Args:
         loss (:class:`LossFunction`): The loss function.
+
         params (:class:`torch.Tensor`): The network parameters.
+
         n (int): The number of eigenvalue-eigenvector pairs to calculate.
+
         max_iters (int): The maximum number of iterations to perform. If the
-            procedure has not converged after this many iterations, a
-            RuntimeError is raised.
+        procedure has not converged after this many iterations, a RuntimeError
+        is raised.
+
         tol (float): The procedure declares convergence once the difference
-            between iterations falls below this tolerance in the 1-norm.
+        between iterations falls below this tolerance in the 1-norm.
+
         init_eigvecs (optional, :class:`torch.Tensor`): The initialization
-            value. If not provided, this is randomly initialized. A sensible
-            choice of initialization - for example, reusing the last
-            eigenvector when repeatedly calculating the eigenvector during
-            training - can radically reduce the number of iterations required.
+        value. If not provided, this is randomly initialized. A sensible
+        choice of initialization - for example, reusing the last eigenvector
+        when repeatedly calculating the eigenvector during training - can
+        radically reduce the number of iterations required.
     '''
     op = HMatrix(loss, params)
     return power_iteration_method(
@@ -172,24 +188,29 @@ def loss_hessian_eigenvector(loss: LossFunction, params: torch.Tensor,
         \\frac{\\partial^2 l(f(x, \\theta), y)}
         {\\partial \\theta_i \\partial \\theta_j})(x, y) \\right)
 
-    Where $\\mathcal{T}$ is the training set, $l$ is the criterion, and
-    $f(x, \\theta)$ is the output of the neural network with inputs $x$
-    and parameters $\\theta$.
+    Where :math:`\\mathcal{T}` is the training set, :math:`l` is the criterion,
+    and :math:`f(x, \\theta)` is the output of the neural network with inputs
+    :math:`x` and parameters :math:`\\theta`.
 
     Args:
         loss (:class:`LossFunction`): The loss function.
+
         params (:class:`torch.Tensor`): The network parameters.
+
         n (int): The number of eigenvalue-eigenvector pairs to calculate.
+
         max_iters (int): The maximum number of iterations to perform. If the
-            procedure has not converged after this many iterations, a
-            RuntimeError is raised.
+        procedure has not converged after this many iterations, a RuntimeError
+        is raised.
+
         tol (float): The procedure declares convergence once the difference
-            between iterations falls below this tolerance in the 1-norm.
+        between iterations falls below this tolerance in the 1-norm.
+
         init_eigvecs (optional, :class:`torch.Tensor`): The initialization
-            value. If not provided, this is randomly initialized. A sensible
-            choice of initialization - for example, reusing the last
-            eigenvector when repeatedly calculating the eigenvector during
-            training - can radically reduce the number of iterations required.
+        value. If not provided, this is randomly initialized. A sensible
+        choice of initialization - for example, reusing the last eigenvector
+        when repeatedly calculating the eigenvector during training - can
+        radically reduce the number of iterations required.
     '''
     op = LossHessian(loss, params)
     return power_iteration_method(

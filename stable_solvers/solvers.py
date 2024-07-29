@@ -50,15 +50,30 @@ class Solver:
 
 class GradientDescent(Solver):
     '''
-    Performs conventional gradient descent without momentum.
+    Performs conventional gradient descent without momentum, following the
+    update rule:
+
+    .. math::
+        \\theta_{u+1} = \\theta_u -
+        \\eta \\nabla_\\theta \\widetilde{\\mathcal{L}}(\\theta)
+
+    Where :math:`\\theta_u` is the parameters at iteration :math:`u`,
+    :math:`\\eta` is the learning rate, and
+    :math:`\\widetilde{\\mathcal{L}}(\\theta)` is the training loss.
+
+    This class is primarily provided for comparison purposes, but training with
+    conventional gradient descent can be stable if the learning rate is small
+    enough.
     '''
     def __init__(self, params: torch.Tensor, loss: LossFunction,
                  lr: float):
         '''
         Args:
             params (:class:`torch.Tensor`): The parameters of the network that
-                are being optimized.
+            are being optimized.
+
             loss (:class:`LossFunction`): The loss function.
+
             lr (float): Learning rate.
         '''
         super().__init__(params=params, loss=loss)
@@ -80,29 +95,39 @@ class AdaptiveGradientDescent(Solver):
     Performs gradient descent without momentum, adapting the learning rate at
     every step to prevent entering the edge of stability:
 
-    ..math::
+    .. math::
         \\theta_{u+1} = \\theta_u -
         \\eta_u \\nabla_\\theta \\widetilde{\\mathcal{L}}(\\theta)
 
         \\eta_u = \\min\\left(\\eta_{\\max}, \\frac{1}
         {\\lambda^1(\\mathcal{H}_\\theta \\widetilde{\\mathcal{L}}(\\theta_u))}
         \\right)
+
+    Where :math:`\\theta_u` is the parameters at iteration :math:`u`,
+    :math:`\\widetilde{\\mathcal{L}}(\\theta)` is the training loss,
+    :math:`\\mathcal{H}_\\theta \\widetilde{\\mathcal{L}}(\\theta)` is the
+    Hessian matrix of the training loss, :math:`\\lambda^1(\\cdot)` is the top
+    eigenvalue, and :math:`\\eta_{\\max}` is a hyperparameter.
     '''
     def __init__(self, params: torch.Tensor, loss: LossFunction,
                  lr: float, warmup_iters: int = 0, warmup_factor: float = 1.):
         '''
         Args:
             params (:class:`torch.Tensor`): The parameters of the network that
-                are being optimized.
+            are being optimized.
+
             loss (:class:`LossFunction`): The loss function.
+
             lr (float): Maximum learning rate. If the adaptive learning rate
-                exceeds this value, it is truncated to be no higher than this.
+            exceeds this value, it is truncated to be no higher than this.
+
             warmup_iters (int): If set, the maximum learning rate is initially
-                set to a lower value for this many iterations, to damp out
-                initial transients.
+            set to a lower value for this many iterations, to damp out
+            initial transients.
+
             warmup_factor (float): If set, the maximum learning rate is
-                initially reduced by this factor, to damp out initial
-                transients.
+            initially reduced by this factor, to damp out initial
+            transients.
         '''
         super().__init__(params=params, loss=loss)
         self.lr = lr
@@ -135,24 +160,77 @@ class ExponentialEulerSolverReport(SolverReport):
 
 
 class ExponentialEulerSolver(Solver):
+    '''
+    Uses the exponential Euler method from `Lowell and Kastner 2024
+    <https://arxiv.org/abs/2406.00127>`_:
+
+    .. math::
+        \\theta_{u+1} = \\theta_u -
+        \\sum_{m=1}^k c_u^m r_u^m
+        v^m(\\mathcal{H}_\\theta \\widetilde{\\mathcal{L}}(\\theta)) -
+        \\eta_u w_u
+
+        r_u^m = 
+        \\min\\left(\\frac{1}
+        {\\lambda^m(\\mathcal{H}_\\theta \\widetilde{\\mathcal{L}}(\\theta))}
+        \\left(e^{
+        -\\lambda^m(\\mathcal{H}_\\theta \\widetilde{\\mathcal{L}}(\\theta)) t
+        } - 1\\right), \\eta_{\\max}\\right)
+
+        c_u^m = \\nabla_\\theta \\widetilde{\\mathcal{L}}(\\theta_u)
+        \\cdot v^m(\\mathcal{H}_\\theta \\widetilde{\\mathcal{L}}(\\theta))
+
+        w_u = \\nabla_\\theta \\widetilde{\\mathcal{L}}(\\theta_u) -
+        \\sum_{m=1}^k c_u^m
+        v^m(\\mathcal{H}_\\theta \\widetilde{\\mathcal{L}}(\\theta))
+
+        \\eta_u = \\max\\left(\\frac{1}{
+        \\lambda^{k+1}(\\mathcal{H}_\\theta \\widetilde{\\mathcal{L}}(\\theta))
+        }, \\eta_{\\max}\\right)
+
+    Where :math:`\\theta_u` is the parameters at iteration :math:`u`,
+    :math:`\\widetilde{\\mathcal{L}}(\\theta)` is the training loss,
+    :math:`\\mathcal{H}_\\theta \\widetilde{\\mathcal{L}}(\\theta)` is the
+    Hessian matrix of the training loss, :math:`\\lambda^m(\\cdot)` is the
+    :math:`m`th top eigenvalue, :math:`v^m(\\cdot)` is the :math:`m`th top
+    eigenvector, :math:`k` is the expected dimension of the stiff subspace, and
+    :math:`\\eta_{\\max}` is a hyperparameter.
+
+    Essentially, where conventional gradient descent approximates the loss
+    function as a locally linear function, the exponential Euler solver
+    approximates it as a locally quadratic function. Since recovering all of
+    the quadratic terms in the Taylor expansion requires computing all of the
+    eigenvalues and eigenvectors of
+    :math:`\\mathcal{H}_\\theta \\widetilde{\\mathcal{L}}(\\theta)`, which is
+    intractable, it instead only captures the largest and most influential
+    quadratic components, and settles for a linear approximation in the other
+    directions. It additionally calculates a learning rate by using one more
+    eigenvalue, analogous to the :class:`AdaptiveGradientDescent` solver, and
+    flows along the gradient flow by a time step equal to that learning rate.
+    '''
     def __init__(self, params: torch.Tensor, loss: LossFunction,
                  max_step_size: float, stiff_dim: int, warmup_iters: int = 0,
                  warmup_factor: float = 1.):
         '''
         Args:
             params (:class:`torch.Tensor`): The parameters of the network that
-                are being optimized.
+            are being optimized.
+
             loss (:class:`LossFunction`): The loss function.
+
             max_step_size (float): Maximum step size.
+
             stiff_dim (int): Dimension of the expected "stiff" component
-                of the loss landscape, generally equal to the number of
-                network outputs.
+            of the loss landscape, generally equal to the number of
+            network outputs.
+
             warmup_iters (int): If set, the maximum step size is initially
-                set to a lower value for this many iterations, to damp out
-                initial transients.
+            set to a lower value for this many iterations, to damp out
+            initial transients.
+
             warmup_factor (float): If set, the maximum step size is
-                initially reduced by this factor, to damp out initial
-                transients.
+            initially reduced by this factor, to damp out initial
+            transients.
         '''
         super().__init__(params=params, loss=loss)
         self.max_step_size = max_step_size

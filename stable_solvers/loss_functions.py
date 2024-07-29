@@ -20,14 +20,14 @@ class LossFunction(torch.nn.Module):
 
     The expected signature of the dataset, criterion, and networks are:
 
-    .. code:
+    .. code-block:
         for *inputs, labels in dataloader:
             out = network(*inputs)
             loss = criterion(out, labels)
 
     The expected signature to use :class:`LossFunction` is:
 
-    .. code:
+    .. code-block:
         loss_func = LossFunction(dataset, criterion, net)
         params = loss_func.initialize_parameters()
         loss = loss_func(params)
@@ -38,7 +38,9 @@ class LossFunction(torch.nn.Module):
         '''
         Args:
             dataset (:class:`torch.utils.data.Dataset`): The dataset.
+
             criterion (callable): The criterion.
+
             net (:class:`torch.nn.Module`): The network architecture.
 
         In addition, keyword arguments such as num_workers and batch_size may
@@ -78,6 +80,9 @@ class LossFunction(torch.nn.Module):
             yield *inputs, labels
 
     def forward(self, params: torch.Tensor) -> torch.Tensor:
+        '''
+        Calculates the loss for a given choice of parameters.
+        '''
         n_data = loss = 0
         param_dict = _params_tensor_to_dict(params, self._net)
 
@@ -136,6 +141,16 @@ class LossFunction(torch.nn.Module):
                               device: torch.device = torch.device('cuda'),
                               dtype: torch.dtype = torch.float32) \
             -> torch.Tensor:
+        '''
+        Convenience function to create a suitable :class:`torch.Tensor` to use
+        as parameters. Uses the Kaiming initialization for weights, and zeros
+        for biases.
+
+        Args:
+            gain (float): The gain for the activation function.
+            device (:class:`torch.device`): The device to create the tensor on.
+            dtype (:class:`torch.dtype`): The dtype of tensor to create.
+        '''
         num_el = sum(p.numel() for p in self._net.parameters())
         out = torch.empty((num_el,), device=device, dtype=dtype)
         param_dict = _params_tensor_to_dict(out, self._net)
