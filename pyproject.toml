@@ -1,0 +1,7 @@
+[project]
+name = "stable-solvers"
+version = "0.1"
+dependencies = ["torch>=2.1"]
+authors = [{name = "Mark Lowell", email="MarkLowell@theorem-engine.org"}]
+description = "Library of solvers to train neural networks without entering the edge of stability"
+readme = "README.md" 
