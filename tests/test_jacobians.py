@@ -2,7 +2,7 @@ import unittest
 
 import torch
 
-import exponential_euler_solver as euler
+import stable_solvers as solvers
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -29,7 +29,7 @@ class LayerwiseTest(unittest.TestCase):
         jac_1_1 = net[2].weight.T.unsqueeze(0) * sigma_prime
 
         params = torch.cat([p.flatten() for p in net.parameters()])
-        jac_func = euler.make_layerwise_jacobian_function(net, params)
+        jac_func = solvers.make_layerwise_jacobian_function(net, params)
         jac_2_0, jac_2_1 = jac_func(xs)
 
         self.assertTrue(torch.allclose(jac_1_0, jac_2_0))

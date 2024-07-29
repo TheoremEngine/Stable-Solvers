@@ -5,7 +5,7 @@ from typing import Callable, Iterable
 from tabulate import tabulate
 import torch
 
-import exponential_euler_solver as euler
+import stable_solvers as solvers
 
 
 BATCH_SIZE = 1024
@@ -53,7 +53,7 @@ def make_loss_func():
     net += [torch.nn.ELU(), torch.nn.Linear(NETWORK_WIDTH, NUM_CLASSES)]
     net = torch.nn.Sequential(*net).cuda()
 
-    loss_func = euler.LossFunction(
+    loss_func = solvers.LossFunction(
         ds, criterion, net=net, batch_size=BATCH_SIZE
     )
     params = loss_func.initialize_parameters(device='cuda')
@@ -63,12 +63,12 @@ def make_loss_func():
 
 def make_solver():
     loss_func, params = make_loss_func()
-    solver = euler.ExponentialEulerSolver(params, loss_func, 0.01, NUM_CLASSES)
+    solver = solver.ExponentialEulerSolver(params, loss_func, 0.01, NUM_CLASSES)
     return (solver,)
 
 
 def run_g_eig(loss_func, params):
-    euler.g_eigenvector(loss_func, params, max_iters=1000)
+    solver.g_eigenvector(loss_func, params, max_iters=1000)
 
 
 def run_grad(loss_func, params):
@@ -76,11 +76,11 @@ def run_grad(loss_func, params):
 
 
 def run_h_eig(loss_func, params):
-    euler.h_eigenvector(loss_func, params, max_iters=1000)
+    solver.h_eigenvector(loss_func, params, max_iters=1000)
 
 
 def run_hess(loss_func, params):
-    euler.loss_hessian_eigenvector(loss_func, params, max_iters=1000)
+    solver.loss_hessian_eigenvector(loss_func, params, max_iters=1000)
 
 
 def run_solver(solver):

@@ -2,8 +2,8 @@ import unittest
 
 import torch
 
-import exponential_euler_solver as euler
-from exponential_euler_solver.utils import _params_tensor_to_dict
+import stable_solvers as solvers
+from stable_solvers.utils import _params_tensor_to_dict
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -16,7 +16,7 @@ class LossFunctionTest(unittest.TestCase):
         xs = torch.randn((4, 3), device=DEVICE)
         ys = torch.tensor([0, 0, 1, 1], device=DEVICE, dtype=torch.int64)
         ds = torch.utils.data.TensorDataset(xs, ys)
-        loss_func = euler.LossFunction(
+        loss_func = solvers.LossFunction(
             dataset=ds, criterion=criterion, net=torch.nn.Linear(4, 4),
         )
 
@@ -39,7 +39,7 @@ class LossFunctionTest(unittest.TestCase):
         loss_1 = criterion(out, ys).mean()
 
         params = torch.cat([p.flatten() for p in net.parameters()])
-        loss_func = euler.LossFunction(
+        loss_func = solvers.LossFunction(
             dataset=ds, criterion=criterion, net=net
         )
         loss_2 = loss_func(params)
@@ -64,7 +64,7 @@ class LossFunctionTest(unittest.TestCase):
         grads_1 = [p.grad for p in net.parameters()]
 
         params = torch.cat([p.flatten() for p in net.parameters()])
-        loss_func = euler.LossFunction(
+        loss_func = solvers.LossFunction(
             dataset=ds, criterion=criterion, net=net
         )
         loss_2, grads_2 = loss_func.gradient(params)
@@ -84,7 +84,7 @@ class LossFunctionTest(unittest.TestCase):
             torch.nn.ReLU(True),
             torch.nn.Linear(8, 2)
         )
-        loss_func = euler.LossFunction(
+        loss_func = solvers.LossFunction(
             dataset=ds, criterion=criterion, net=net
         )
         params = loss_func.initialize_parameters(device=DEVICE)

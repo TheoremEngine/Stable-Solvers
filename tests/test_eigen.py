@@ -4,7 +4,7 @@ import numpy as np
 import torch
 import torch.linalg as la
 
-import exponential_euler_solver as euler
+import stable_solvers as solvers
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -45,10 +45,10 @@ class EigvecsTest(unittest.TestCase):
         # will return
         eigvals_1 = eigvals_1[torch.argsort(eigvals_1.abs(), descending=True)]
 
-        loss_func = euler.LossFunction(
+        loss_func = solvers.LossFunction(
             dataset=ds, criterion=criterion, batch_size=4, net=net,
         )
-        eigvals_2, _ = euler.g_eigenvector(
+        eigvals_2, _ = solvers.g_eigenvector(
             loss_func, param_tensor, tol=1e-6, n=2, max_iters=1000
         )
 
@@ -102,10 +102,10 @@ class EigvecsTest(unittest.TestCase):
         idxs = torch.argsort(eigvals_1.abs(), descending=True)
         eigvals_1, _ = eigvals_1[idxs], eigvecs_1[idxs]
 
-        loss_func = euler.LossFunction(
+        loss_func = solvers.LossFunction(
             dataset=ds, criterion=criterion, batch_size=4, net=net,
         )
-        eigvals_2, _ = euler.h_eigenvector(
+        eigvals_2, _ = solvers.h_eigenvector(
             loss_func, param_tensor, tol=1e-6, n=2, max_iters=1000
         )
 
@@ -155,10 +155,10 @@ class EigvecsTest(unittest.TestCase):
         eigvals_1 = torch.flip(eigvals_1, dims=(0,))
         eigvecs_1 = torch.flip(eigvecs_1, dims=(1,))
 
-        loss_func = euler.LossFunction(
+        loss_func = solvers.LossFunction(
             dataset=ds, criterion=criterion, batch_size=4, net=net,
         )
-        eigvals_2, eigvecs_2 = euler.loss_hessian_eigenvector(
+        eigvals_2, eigvecs_2 = solvers.loss_hessian_eigenvector(
             loss_func, param_tensor, tol=1e-6, n=2, max_iters=1000
         )
 

@@ -2,8 +2,8 @@ import unittest
 
 import torch
 
-import exponential_euler_solver as euler
-from exponential_euler_solver.utils import _params_tensor_to_dict
+import stable_solvers as solvers
+from stable_solvers.utils import _params_tensor_to_dict
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -36,10 +36,10 @@ class SolverTest(unittest.TestCase):
         opt.step()
 
         params = torch.cat([p.flatten() for p in net_2.parameters()])
-        loss_func = euler.LossFunction(
+        loss_func = solvers.LossFunction(
             dataset=ds, criterion=criterion, net=net_2
         )
-        solver = euler.GradientDescent(loss=loss_func, params=params, lr=0.1)
+        solver = solvers.GradientDescent(loss=loss_func, params=params, lr=0.1)
         loss_2 = torch.tensor([solver.step().loss], device=DEVICE)
         param_dict = _params_tensor_to_dict(params, loss_func._net)
 
