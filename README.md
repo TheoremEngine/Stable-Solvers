@@ -1,4 +1,4 @@
-## Stable Solvers <img align="right" src="docs/source/_static/logo.png">
+## Stable Solvers <img align="right" src="docs/source/_static/logo.png" width=64 height=64>
 
 This library provides solvers for training neural networks without entering the edge of stability. The edge of stability phenomenon was discovered in [Cohen et al. 2021](https://arxiv.org/abs/2103.00065). This repo is based on the approach used in [Lowell and Kastner 2024](https://arxiv.org/abs/2406.00127), but it is a complete reimplementation incorporating new techniques that improve runtime efficiency and support more recent versions of PyTorch. **IT IS STILL UNDER HEAVY CONSTRUCTION**.
 
