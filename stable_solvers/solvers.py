@@ -137,6 +137,9 @@ class AdaptiveGradientDescent(Solver):
         self.i = 0
 
     def step(self) -> AdaptiveGradientDescentReport:
+        '''
+        Takes a single step, returning a report.
+        '''
         # Calculate the gradient
         loss, grads = self.loss.gradient(self.params)
         # Calculate the step size
@@ -192,7 +195,7 @@ class ExponentialEulerSolver(Solver):
     :math:`\\widetilde{\\mathcal{L}}(\\theta)` is the training loss,
     :math:`\\mathcal{H}_\\theta \\widetilde{\\mathcal{L}}(\\theta)` is the
     Hessian matrix of the training loss, :math:`\\lambda^m(\\cdot)` is the
-    :math:`m`th top eigenvalue, :math:`v^m(\\cdot)` is the :math:`m`th top
+    :math:`m` th top eigenvalue, :math:`v^m(\\cdot)` is the :math:`m` th top
     eigenvector, :math:`k` is the expected dimension of the stiff subspace, and
     :math:`\\eta_{\\max}` is a hyperparameter.
 
@@ -207,6 +210,18 @@ class ExponentialEulerSolver(Solver):
     directions. It additionally calculates a learning rate by using one more
     eigenvalue, analogous to the :class:`AdaptiveGradientDescent` solver, and
     flows along the gradient flow by a time step equal to that learning rate.
+
+    The stiff dimension should be set to the dimension of the highly curved 
+    subspace. If the stiff dimension is set too high, the solver will be slow
+    because it will be calculating more eigenvectors than it needs to. If it is
+    set too low, it will be slow because it will not be fully compensating for
+    the curvature of the loss landscape. Fortunately, in practice, the
+    dimension of the highly curved subspace is equal to the dimension of the
+    network outputs, reduced by one if using the cross-entropy loss. For
+    example, a classifier trained using cross-entropy loss on a dataset with 10
+    classes would have a stiff dimension of 9. A regression network trained
+    using mean-squared error to predict a single value would have a stiff
+    dimension of 1. 
     '''
     def __init__(self, params: torch.Tensor, loss: LossFunction,
                  max_step_size: float, stiff_dim: int, warmup_iters: int = 0,
@@ -241,6 +256,9 @@ class ExponentialEulerSolver(Solver):
         self.i = 0
 
     def step(self) -> ExponentialEulerSolverReport:
+        '''
+        Takes a single step, returning a report.
+        '''
         # Calculate the gradient
         loss, grads = self.loss.gradient(self.params)
         # Calculate the eigenvectors. Note that we add one to the stiff
