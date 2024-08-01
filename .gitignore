@@ -1,4 +1,6 @@
 __pycache__/
 docs/build/
-.DS_Store/
+build/
+stable_solvers.egg-info/
+.DS_Store
 .ipynb_checkpoints/
