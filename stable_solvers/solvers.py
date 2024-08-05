@@ -206,7 +206,7 @@ class AdaptiveGradientDescent(Solver):
             init_eigvecs=self.eigvec, max_iters=1000,
         )
         scale = self.warmup_factor if (self.i < self.warmup_iters) else 1.
-        step_size = min(scale * self.lr, 1. / sharpness.item())
+        step_size = min(scale * self.lr, 1. / sharpness.abs().item())
         # Perform update
         self.params -= step_size * grads
         self.i += 1
