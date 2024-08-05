@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+from typing import Optional
+
 import torch
 
 from .eigen import loss_hessian_eigenvector
@@ -7,7 +9,7 @@ from .loss_functions import LossFunction
 __all__ = [
     'AdaptiveGradientDescent', 'AdaptiveGradientDescentReport',
     'ExponentialEulerSolver', 'ExponentialEulerSolverReport',
-    'GradientDescent', 'Solver', 'SolverReport'
+    'GradientDescent', 'GradientDescentReport', 'Solver', 'SolverReport'
 ]
 
 
@@ -48,6 +50,11 @@ class Solver:
         raise NotImplementedError()
 
 
+@dataclass
+class GradientDescentReport(SolverReport):
+    gradient: Optional[torch.Tensor] = None
+
+
 class GradientDescent(Solver):
     '''
     Performs conventional gradient descent without momentum, following the
@@ -66,7 +73,7 @@ class GradientDescent(Solver):
     enough.
     '''
     def __init__(self, params: torch.Tensor, loss: LossFunction,
-                 lr: float):
+                 lr: float, report_gradient: bool = False):
         '''
         Args:
             params (:class:`torch.Tensor`): The parameters of the network that
@@ -75,19 +82,30 @@ class GradientDescent(Solver):
             loss (:class:`LossFunction`): The loss function.
 
             lr (float): Learning rate.
+
+            report_gradient (bool): Whether to include the gradient in the
+            report returned at each step.
         '''
         super().__init__(params=params, loss=loss)
         self.lr = lr
+        self.report_gradient = report_gradient
 
     def step(self) -> SolverReport:
         loss, grads = self.loss.gradient(self.params)
         self.params -= self.lr * grads
-        return SolverReport(loss=loss.item(), dt=self.lr)
+
+        return GradientDescentReport(
+            loss=loss.item(),
+            dt=self.lr,
+            gradient=(grads if self.report_gradient else None),
+        )
 
 
 @dataclass
 class AdaptiveGradientDescentReport(SolverReport):
     sharpness: float
+    gradient: Optional[torch.Tensor] = None
+    eigvec: Optional[torch.Tensor] = None
 
 
 class AdaptiveGradientDescent(Solver):
@@ -110,7 +128,8 @@ class AdaptiveGradientDescent(Solver):
     eigenvalue, and :math:`\\eta_{\\max}` is a hyperparameter.
     '''
     def __init__(self, params: torch.Tensor, loss: LossFunction,
-                 lr: float, warmup_iters: int = 0, warmup_factor: float = 1.):
+                 lr: float, warmup_iters: int = 0, warmup_factor: float = 1.,
+                 report_gradient: bool = False, report_eigvec: bool = False):
         '''
         Args:
             params (:class:`torch.Tensor`): The parameters of the network that
@@ -128,11 +147,19 @@ class AdaptiveGradientDescent(Solver):
             warmup_factor (float): If set, the maximum learning rate is
             initially reduced by this factor, to damp out initial
             transients.
+
+            report_gradient (bool): Whether to include the gradient in the
+            report returned at each step.
+
+            report_eigvec (bool): Whether to include the top eigenvector in the
+            report returned at each step.
         '''
         super().__init__(params=params, loss=loss)
         self.lr = lr
         self.warmup_iters = warmup_iters
         self.warmup_factor = warmup_factor
+        self.report_gradient = report_gradient
+        self.report_eigvec = report_eigvec
         self.eigvec = None
         self.i = 0
 
@@ -152,14 +179,21 @@ class AdaptiveGradientDescent(Solver):
         # Perform update
         self.params -= step_size * grads
         self.i += 1
+
         return AdaptiveGradientDescentReport(
-            loss=loss.item(), dt=step_size, sharpness=sharpness.item(),
+            loss=loss.item(),
+            dt=step_size,
+            sharpness=sharpness.item(),
+            gradient=(grads if self.report_gradient else None),
+            eigvec=(self.eigvec if self.report_eigvec else None),
         )
 
 
 @dataclass
 class ExponentialEulerSolverReport(SolverReport):
     eigvals: torch.Tensor
+    gradient: Optional[torch.Tensor] = None
+    eigvecs: Optional[torch.Tensor] = None
 
 
 class ExponentialEulerSolver(Solver):
@@ -225,7 +259,8 @@ class ExponentialEulerSolver(Solver):
     '''
     def __init__(self, params: torch.Tensor, loss: LossFunction,
                  max_step_size: float, stiff_dim: int, warmup_iters: int = 0,
-                 warmup_factor: float = 1.):
+                 warmup_factor: float = 1., report_gradient: bool = False,
+                 report_eigvecs: bool = False):
         '''
         Args:
             params (:class:`torch.Tensor`): The parameters of the network that
@@ -246,12 +281,20 @@ class ExponentialEulerSolver(Solver):
             warmup_factor (float): If set, the maximum step size is
             initially reduced by this factor, to damp out initial
             transients.
+
+            report_gradient (bool): Whether to include the gradient in the
+            report returned at each step.
+
+            report_eigvecs (bool): Whether to include the top eigenvectors in
+            the report returned at each step.
         '''
         super().__init__(params=params, loss=loss)
         self.max_step_size = max_step_size
         self.stiff_dim = stiff_dim
         self.warmup_iters = warmup_iters
         self.warmup_factor = warmup_factor
+        self.report_gradient = report_gradient
+        self.report_eigvecs = report_eigvecs
         self.eigvecs = None
         self.i = 0
 
@@ -286,5 +329,9 @@ class ExponentialEulerSolver(Solver):
         self.i += 1
 
         return ExponentialEulerSolverReport(
-            loss=loss.item(), eigvals=eigvals, dt=step_size,
+            loss=loss.item(),
+            eigvals=eigvals,
+            dt=step_size,
+            gradient=(grads if self.report_gradient else None),
+            eigvecs=(self.eigvecs if self.report_eigvecs else None),
         )
