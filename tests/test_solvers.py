@@ -110,6 +110,31 @@ class SolverTest(unittest.TestCase):
         self.assertTrue(report.gradient is None)
         self.assertTrue(report.eigvec is None)
 
+    def test_check_loss(self):
+        criterion = torch.nn.CrossEntropyLoss()
+        xs = torch.randn((4, 3), device=DEVICE)
+        ys = torch.tensor([0, 0, 1, 1], device=DEVICE, dtype=torch.int64)
+        ds = torch.utils.data.TensorDataset(xs, ys)
+
+        net = torch.nn.Sequential(
+            torch.nn.Linear(3, 8),
+            torch.nn.ReLU(True),
+            torch.nn.Linear(8, 2)
+        )
+        net = net.to(DEVICE)
+
+        loss_func = solvers.LossFunction(
+            dataset=ds, criterion=criterion, net=net
+        )
+        params = loss_func.initialize_parameters(device=DEVICE)
+        solver = solvers.AdaptiveGradientDescent(
+            loss=loss_func, params=params, lr=0.01, error_if_unstable=True,
+        )
+        solver.last_loss = 0.
+
+        with self.assertRaises(RuntimeError):
+            solver.step()
+
     def test_exponential_euler_solver(self):
         criterion = torch.nn.CrossEntropyLoss()
         xs = torch.randn((4, 3), device=DEVICE)

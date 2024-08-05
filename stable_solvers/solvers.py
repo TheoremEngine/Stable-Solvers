@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Optional
+import warnings
 
 import torch
 
@@ -33,15 +34,31 @@ class Solver:
             ...
             loss = solver.step()
     '''
-    def __init__(self, params: torch.Tensor, loss: LossFunction):
+    def __init__(self, params: torch.Tensor, loss: LossFunction,
+                 error_if_unstable: bool = False):
         '''
         Args:
             params (:class:`torch.Tensor`): The parameters of the network that
-                are being optimized.
+            are being optimized.
+
             loss (:class:`LossFunction`): The loss function.
         '''
         self.params = params
         self.loss = loss
+        self.error_if_unstable = error_if_unstable
+        self.last_loss = float('inf')
+
+    def _check_loss(self, loss: torch.Tensor):
+        if self.last_loss < loss:
+            if self.error_if_unstable:
+                raise RuntimeError(
+                    'Loss has increased, indicating training is unstable'
+                )
+            else:
+                warnings.warn(
+                    'Loss has increased, indicating training is unstable'
+                )
+        self.last_loss = loss
 
     def device(self) -> torch.device:
         return self.params.device
@@ -73,7 +90,8 @@ class GradientDescent(Solver):
     enough.
     '''
     def __init__(self, params: torch.Tensor, loss: LossFunction,
-                 lr: float, report_gradient: bool = False):
+                 lr: float, report_gradient: bool = False,
+                 error_if_unstable: bool = False):
         '''
         Args:
             params (:class:`torch.Tensor`): The parameters of the network that
@@ -85,13 +103,19 @@ class GradientDescent(Solver):
 
             report_gradient (bool): Whether to include the gradient in the
             report returned at each step.
+
+            error_if_unstable (bool): Whether to raise a :class:`RuntimeError`
+            if training becomes unstable, as determined by the loss rising.
         '''
-        super().__init__(params=params, loss=loss)
+        super().__init__(
+            params=params, loss=loss, error_if_unstable=error_if_unstable,
+        )
         self.lr = lr
         self.report_gradient = report_gradient
 
     def step(self) -> SolverReport:
         loss, grads = self.loss.gradient(self.params)
+        self._check_loss(loss)
         self.params -= self.lr * grads
 
         return GradientDescentReport(
@@ -129,7 +153,8 @@ class AdaptiveGradientDescent(Solver):
     '''
     def __init__(self, params: torch.Tensor, loss: LossFunction,
                  lr: float, warmup_iters: int = 0, warmup_factor: float = 1.,
-                 report_gradient: bool = False, report_eigvec: bool = False):
+                 report_gradient: bool = False, report_eigvec: bool = False,
+                 error_if_unstable: bool = False):
         '''
         Args:
             params (:class:`torch.Tensor`): The parameters of the network that
@@ -153,8 +178,13 @@ class AdaptiveGradientDescent(Solver):
 
             report_eigvec (bool): Whether to include the top eigenvector in the
             report returned at each step.
+
+            error_if_unstable (bool): Whether to raise a :class:`RuntimeError`
+            if training becomes unstable, as determined by the loss rising.
         '''
-        super().__init__(params=params, loss=loss)
+        super().__init__(
+            params=params, loss=loss, error_if_unstable=error_if_unstable,
+        )
         self.lr = lr
         self.warmup_iters = warmup_iters
         self.warmup_factor = warmup_factor
@@ -169,6 +199,7 @@ class AdaptiveGradientDescent(Solver):
         '''
         # Calculate the gradient
         loss, grads = self.loss.gradient(self.params)
+        self._check_loss(loss)
         # Calculate the step size
         sharpness, self.eigvec = loss_hessian_eigenvector(
             self.loss, self.params, 1,
@@ -207,7 +238,7 @@ class ExponentialEulerSolver(Solver):
         v^m(\\mathcal{H}_\\theta \\widetilde{\\mathcal{L}}(\\theta)) -
         \\eta_u w_u
 
-        r_u^m = 
+        r_u^m =
         \\min\\left(\\frac{1}
         {\\lambda^m(\\mathcal{H}_\\theta \\widetilde{\\mathcal{L}}(\\theta))}
         \\left(e^{
@@ -245,7 +276,7 @@ class ExponentialEulerSolver(Solver):
     eigenvalue, analogous to the :class:`AdaptiveGradientDescent` solver, and
     flows along the gradient flow by a time step equal to that learning rate.
 
-    The stiff dimension should be set to the dimension of the highly curved 
+    The stiff dimension should be set to the dimension of the highly curved
     subspace. If the stiff dimension is set too high, the solver will be slow
     because it will be calculating more eigenvectors than it needs to. If it is
     set too low, it will be slow because it will not be fully compensating for
@@ -255,12 +286,13 @@ class ExponentialEulerSolver(Solver):
     example, a classifier trained using cross-entropy loss on a dataset with 10
     classes would have a stiff dimension of 9. A regression network trained
     using mean-squared error to predict a single value would have a stiff
-    dimension of 1. 
+    dimension of 1.
     '''
     def __init__(self, params: torch.Tensor, loss: LossFunction,
                  max_step_size: float, stiff_dim: int, warmup_iters: int = 0,
                  warmup_factor: float = 1., report_gradient: bool = False,
-                 report_eigvecs: bool = False):
+                 report_eigvecs: bool = False,
+                 error_if_unstable: bool = False):
         '''
         Args:
             params (:class:`torch.Tensor`): The parameters of the network that
@@ -287,8 +319,13 @@ class ExponentialEulerSolver(Solver):
 
             report_eigvecs (bool): Whether to include the top eigenvectors in
             the report returned at each step.
+
+            error_if_unstable (bool): Whether to raise a :class:`RuntimeError`
+            if training becomes unstable, as determined by the loss rising.
         '''
-        super().__init__(params=params, loss=loss)
+        super().__init__(
+            params=params, loss=loss, error_if_unstable=error_if_unstable,
+        )
         self.max_step_size = max_step_size
         self.stiff_dim = stiff_dim
         self.warmup_iters = warmup_iters
@@ -304,6 +341,7 @@ class ExponentialEulerSolver(Solver):
         '''
         # Calculate the gradient
         loss, grads = self.loss.gradient(self.params)
+        self._check_loss(loss)
         # Calculate the eigenvectors. Note that we add one to the stiff
         # dimension so we can also calculate the step size adaptively for the
         # non-stiff component.
